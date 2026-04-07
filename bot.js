@@ -12,6 +12,54 @@
 import "dotenv/config";
 import { readFileSync, writeFileSync, existsSync, appendFileSync } from "fs";
 import crypto from "crypto";
+import { execSync } from "child_process";
+
+// ─── Onboarding ───────────────────────────────────────────────────────────────
+
+function checkOnboarding() {
+  const required = ["BITGET_API_KEY", "BITGET_SECRET_KEY", "BITGET_PASSPHRASE"];
+  const missing = required.filter((k) => !process.env[k]);
+
+  if (!existsSync(".env")) {
+    console.log(
+      "\n⚠️  No .env file found — opening it for you to fill in...\n",
+    );
+    writeFileSync(
+      ".env",
+      [
+        "# BitGet credentials",
+        "BITGET_API_KEY=",
+        "BITGET_SECRET_KEY=",
+        "BITGET_PASSPHRASE=",
+        "",
+        "# Trading config",
+        "PORTFOLIO_VALUE_USD=1000",
+        "MAX_TRADE_SIZE_USD=100",
+        "MAX_TRADES_PER_DAY=3",
+        "PAPER_TRADING=true",
+        "SYMBOL=BTCUSDT",
+        "TIMEFRAME=4H",
+      ].join("\n") + "\n",
+    );
+    try {
+      execSync("open .env");
+    } catch {}
+    console.log(
+      "Fill in your BitGet credentials in .env then re-run: node bot.js\n",
+    );
+    process.exit(0);
+  }
+
+  if (missing.length > 0) {
+    console.log(`\n⚠️  Missing credentials in .env: ${missing.join(", ")}`);
+    console.log("Opening .env for you now...\n");
+    try {
+      execSync("open .env");
+    } catch {}
+    console.log("Add the missing values then re-run: node bot.js\n");
+    process.exit(0);
+  }
+}
 
 // ─── Config ────────────────────────────────────────────────────────────────
 
@@ -382,6 +430,7 @@ function generateTaxSummary() {
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 async function run() {
+  checkOnboarding();
   console.log("═══════════════════════════════════════════════════════════");
   console.log("  Claude Trading Bot");
   console.log(`  ${new Date().toISOString()}`);
