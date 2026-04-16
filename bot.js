@@ -74,10 +74,10 @@ function checkOnboarding() {
 
 const CONFIG = {
   symbol: process.env.SYMBOL || "BTCUSDT",
-  timeframe: process.env.TIMEFRAME || "4H",
+  timeframe: process.env.TIMEFRAME || "5m",
   portfolioValue: parseFloat(process.env.PORTFOLIO_VALUE_USD || "1000"),
   maxTradeSizeUSD: parseFloat(process.env.MAX_TRADE_SIZE_USD || "100"),
-  maxTradesPerDay: parseInt(process.env.MAX_TRADES_PER_DAY || "3"),
+  maxTradesPerDay: parseInt(process.env.MAX_TRADES_PER_DAY || "15"),
   paperTrading: process.env.PAPER_TRADING !== "false",
   tradeMode: process.env.TRADE_MODE || "spot",
   binance: {
@@ -882,7 +882,7 @@ async function run() {
         : "";
 
       await sendTelegram(
-        `${pnlIcon} <b>CLOSED ${pos.direction} ${pos.symbol} 1H</b> [${exitReason} ${exitIcon}]\n` +
+        `${pnlIcon} <b>CLOSED ${pos.direction} ${pos.symbol} 5m</b> [${exitReason} ${exitIcon}]\n` +
         `Entry: $${pos.entryPrice.toFixed(2)} → Exit: $${price.toFixed(2)}\n` +
         `P&amp;L: ${pnlUSD >= 0 ? "+" : ""}$${pnlUSD.toFixed(4)} (${pnlPct >= 0 ? "+" : ""}${pnlPct.toFixed(2)}%)` +
         `${perfLine}`
@@ -921,7 +921,14 @@ async function run() {
   // Decision
   console.log("\n── Decision ─────────────────────────────────────────────\n");
 
-  const direction = price > vwap ? "BUY" : "SELL";
+  // Direction requires BOTH VWAP and EMA(8) to agree — avoids conflicting signal trades
+  const bullishSignal = price > vwap && price > ema8;
+  const bearishSignal = price < vwap && price < ema8;
+  if (!bullishSignal && !bearishSignal) {
+    console.log("  ⏸ Mixed signals — VWAP and EMA(8) disagree. Skipping this candle.");
+    return;
+  }
+  const direction = bullishSignal ? "BUY" : "SELL";
   const { tp, sl } = calcTPSL(price, direction);
 
   const logEntry = {
@@ -1033,7 +1040,7 @@ async function run() {
       `🎯 TP: $${logEntry.tp.toFixed(2)}  🛑 SL: $${logEntry.sl.toFixed(2)}\n` +
       `RSI(3): ${tgRsi3.toFixed(1)} | EMA8: $${tgEma8.toFixed(2)} | VWAP: $${tgVwap.toFixed(2)}\n` +
       `${logEntry.timestamp}`
-    : `⏸ <b>BLOCKED ${dir} — ${logEntry.symbol} 1H</b>\n` +
+    : `⏸ <b>BLOCKED ${dir} — ${logEntry.symbol} 5m</b>\n` +
       `Price: $${logEntry.price.toFixed(2)} | VWAP: $${tgVwap.toFixed(2)}\n` +
       (failed ? `Failed:\n${failed}\n` : "") +
       `${logEntry.timestamp}`;
@@ -1052,7 +1059,7 @@ if (process.argv.includes("--tax-summary")) {
   });
 } else {
   // Run in an infinite loop — no cron needed, always-on service
-  const INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+  const INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
   (async () => {
     while (true) {
       try {
@@ -1061,7 +1068,7 @@ if (process.argv.includes("--tax-summary")) {
         console.error("Bot error:", err.message);
         await sendTelegram(`⚠️ <b>Bot error</b>\n${err.message}`);
       }
-      console.log(`⏳ Next run in 60 minutes...\n`);
+      console.log(`⏳ Next run in 5 minutes...\n`);
       await new Promise((r) => setTimeout(r, INTERVAL_MS));
     }
   })();
