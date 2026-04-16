@@ -832,19 +832,6 @@ async function run() {
     return;
   }
 
-  // ── Send 5-min status update to Telegram ─────────────────────────────────
-  const biasLabel = price > vwap && price > ema8 ? "🟢 BULLISH" : price < vwap && price < ema8 ? "🔴 BEARISH" : "⚪ MIXED";
-  const openPos = log.openPosition;
-  const statusLine = openPos
-    ? `📌 Open ${openPos.direction} @ $${openPos.entryPrice.toFixed(2)} | TP $${openPos.tp.toFixed(2)} | SL $${openPos.sl.toFixed(2)}`
-    : `No open position`;
-  await sendTelegram(
-    `📊 <b>SOLUSDT 5m</b> — ${new Date().toUTCString().slice(17, 22)} UTC\n` +
-    `Price: $${price.toFixed(2)} | Bias: ${biasLabel}\n` +
-    `EMA8: $${ema8.toFixed(2)} | VWAP: $${vwap.toFixed(2)} | RSI3: ${rsi3.toFixed(1)}\n` +
-    `${statusLine}`
-  );
-
   // ── Check open position FIRST — always manage open trades regardless of daily limit ──
   if (log.openPosition) {
     const pos = log.openPosition;
@@ -1048,7 +1035,7 @@ async function run() {
   const { ema8: tgEma8, vwap: tgVwap, rsi3: tgRsi3 } = logEntry.indicators;
   const failed = logEntry.conditions.filter(r => !r.pass).map(r => `  • ${r.label}`).join("\n");
   const tgMsg = logEntry.allPass
-    ? `${dirIcon} <b>${CONFIG.paperTrading ? "PAPER " : ""}${dir} ${logEntry.symbol}</b> [1H | ${mode}]\n` +
+    ? `${dirIcon} <b>${CONFIG.paperTrading ? "PAPER " : ""}${dir} ${logEntry.symbol}</b> [5m | ${mode}]\n` +
       `Entry: $${logEntry.price.toFixed(2)} | Size: $${logEntry.tradeSize.toFixed(2)}\n` +
       `🎯 TP: $${logEntry.tp.toFixed(2)}  🛑 SL: $${logEntry.sl.toFixed(2)}\n` +
       `RSI(3): ${tgRsi3.toFixed(1)} | EMA8: $${tgEma8.toFixed(2)} | VWAP: $${tgVwap.toFixed(2)}\n` +
