@@ -832,6 +832,19 @@ async function run() {
     return;
   }
 
+  // ── Send 5-min status update to Telegram ─────────────────────────────────
+  const biasLabel = price > vwap && price > ema8 ? "🟢 BULLISH" : price < vwap && price < ema8 ? "🔴 BEARISH" : "⚪ MIXED";
+  const openPos = log.openPosition;
+  const statusLine = openPos
+    ? `📌 Open ${openPos.direction} @ $${openPos.entryPrice.toFixed(2)} | TP $${openPos.tp.toFixed(2)} | SL $${openPos.sl.toFixed(2)}`
+    : `No open position`;
+  await sendTelegram(
+    `📊 <b>SOLUSDT 5m</b> — ${new Date().toUTCString().slice(17, 22)} UTC\n` +
+    `Price: $${price.toFixed(2)} | Bias: ${biasLabel}\n` +
+    `EMA8: $${ema8.toFixed(2)} | VWAP: $${vwap.toFixed(2)} | RSI3: ${rsi3.toFixed(1)}\n` +
+    `${statusLine}`
+  );
+
   // ── Check open position FIRST — always manage open trades regardless of daily limit ──
   if (log.openPosition) {
     const pos = log.openPosition;
