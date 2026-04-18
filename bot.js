@@ -1069,14 +1069,10 @@ async function run() {
   // Decision
   console.log("\n── Decision ─────────────────────────────────────────────\n");
 
-  // Direction requires BOTH VWAP and EMA(8) to agree — avoids conflicting signal trades
-  const bullishSignal = price > vwap && price > ema8;
-  const bearishSignal = price < vwap && price < ema8;
-  if (!bullishSignal && !bearishSignal) {
-    console.log("  ⏸ Mixed signals — VWAP and EMA(8) disagree. Skipping this candle.");
-    return;
-  }
-  const direction = bullishSignal ? "BUY" : "SELL";
+  // Direction: use VWAP side as the tentative direction. If EMA disagrees, the
+  // safety check's EMA row will fail and the flow will send a BLOCKED card — so
+  // the user gets Telegram feedback every cycle instead of a silent skip.
+  const direction = price > vwap ? "BUY" : "SELL";
   const { tp, sl } = calcTPSL(price, direction);
 
   const logEntry = {
